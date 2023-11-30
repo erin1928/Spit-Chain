@@ -1,0 +1,73 @@
+---
+title: "Spit Chain"
+author: "Erin Anderson"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+library(statnet)
+
+library(curl)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/bioanth-stats/module-F23-Group1/AnzaEtAl_2021_ggr_weighted.csv")
+bonobo_ggr_edgelist <- read.csv(f, header = TRUE, sep = ",")
+head(bonobo_ggr_edgelist) # data about bonobos' GG rubbing interactions
+```
+
+```{r 1, include=TRUE}
+q <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/bioanth-stats/module-F23-Group1/AnzaEtAl_2021_grooming_weighted.csv")
+bonobo_groom_edgelist <- read.csv(q, header = TRUE, sep = ",")
+head(bonobo_groom_edgelist) # data about bonobos' grooming interactions
+```
+
+```{r 2, include=TRUE}
+j <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/bioanth-stats/module-F23-Group1/AnzaEtAl_2021_attributes.csv")
+bonobo_attribute <- read.csv(j, header = TRUE, sep = ",")
+bonobo_attribute
+```
+
+```{r 3, include=TRUE}
+bonobo_ggr_net <- as.network.data.frame(bonobo_ggr_edgelist) # turns GG rubbing edge list into a GG rubbing network
+bonobo_groom_net<-as.network.data.frame(bonobo_groom_edgelist) # turns grooming edge list into a grooming network
+
+bonobo_ggr_net %v% "rank" <- bonobo_attribute$rank #adds rank variable to GG rubbing network as a vertex attribute
+bonobo_ggr_net %v% "age" <- bonobo_attribute$age #adds age variable to GG rubbing network as a vertex attribute
+bonobo_ggr_net %v% "group" <- bonobo_attribute$group #adds group variable to GG rubbing network as a vertex attribute
+bonobo_groom_net %v% "rank" <- bonobo_attribute$rank #adds rank variable to grooming network as a vertex attribute
+bonobo_groom_net %v% "group" <- bonobo_attribute$group #adds group variable to grooming network as a vertex attribute
+```
+
+```{r 4, include=TRUE}
+summary(bonobo_ggr_net)
+```
+
+```{r 5, include=TRUE}
+par(mfrow = c(1, 2))
+plot(bonobo_ggr_net, label = "vertex.names", main="GG rubbing") # left plot
+box(col = "black")
+
+plot(bonobo_ggr_net, vertex.col = "rank", label = "vertex.names", main="GG rubbing", vertex.cex = 2, edge.label = "GGR.Weight", edge.label.cex = 0.6) # right plot
+box(col = "black")
+```
+
+```{r 6, include=TRUE}
+par(mfrow = c(1, 2))
+plot(bonobo_groom_net, label = "vertex.names", main="Grooming") 
+box(col = "black")
+
+plot(bonobo_groom_net, vertex.col = "rank", label = "vertex.names", main="Grooming", vertex.cex = 2, edge.label = "weight", edge.label.cex = 0.6)
+box(col = "black")
+```
+
+```{r 7, include=TRUE}
+gcor(bonobo_ggr_net, bonobo_groom_net)
+```
+```{r 8, include=TRUE}
+set.seed(123)
+qap_cor <- qaptest(list(bonobo_ggr_net, bonobo_groom_net), # include both network objects in a list
+                gcor, # the function you're using is correlation between networks (gcor) 
+                g1=1, # use first graph in the list (in this case the GG rubbing network)
+                g2=2, # use second graph in the list (in this case the groom network)
+                reps = 1000) # number of permutations to run (1000 is actually the default)
+summary(qap_cor)
+```
