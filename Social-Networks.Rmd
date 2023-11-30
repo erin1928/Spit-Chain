@@ -71,3 +71,102 @@ qap_cor <- qaptest(list(bonobo_ggr_net, bonobo_groom_net), # include both networ
                 reps = 1000) # number of permutations to run (1000 is actually the default)
 summary(qap_cor)
 ```
+
+```{r 9, include=TRUE}
+plot(qap_cor)
+```
+
+```{r 10, include=TRUE}
+nodes <- length(bonobo_attribute$actor) # number of nodes in the data set
+rank <- bonobo_ggr_net %v% "rank" # a vector of the node-level variable we are interested in
+
+rank_sending <- matrix(data = NA, nrow = nodes, ncol = nodes) # create empty matrix to be filled for senders
+
+for (i in 1:nodes){ # for 1 through the number of nodes in the data set
+rank_sending[i,] <- rep(rank[i], nodes)} # the rank of each actor is repeated over entire ROW of matrix
+rank_sending
+```
+
+```{r 11, include=TRUE}
+rank_receiving <- matrix(data = NA, nrow = nodes, ncol = nodes) # empty matrix for receivers
+
+for (i in 1:nodes){ # for 1 through the number of nodes in the data set
+rank_receiving[,i] <- rep(rank[i], nodes)} # the rank of each receiver is repeated over entire COLUMN of matrix
+rank_receiving
+```
+
+```{r 12, include=TRUE}
+set.seed(123)
+lrqap <- netlm(bonobo_ggr_net, # response variable is a network object with a weighted adjacency matrix
+                list(rank_sending)) # list of predictor variables as network or matrix objects
+summary(lrqap)
+```
+
+```{r 13, include=TRUE}
+set.seed(123)
+lrqap2 <- netlm(bonobo_ggr_net, # response variable is a network object with a weighted adjacency matrix
+                list(rank_receiving)) # list of predictor variables as network or matrix objects
+summary(lrqap2)
+```
+
+```{r 14, include=TRUE}
+set.seed(123)
+mrqap <- netlm(bonobo_ggr_net, # response variable is a network object with a weighted adjacency matrix
+                list(rank_sending, rank_receiving, bonobo_groom_net)) # list of all predictor variables as network or matrix objects
+
+summary(mrqap)
+```
+
+```{r 15, include=TRUE}
+set.seed(123)
+logqap <- netlogit(bonobo_ggr_net, # response variable is a network object
+                  list(rank_receiving, rank_sending), # list of all predictor variables as network or matrix objects
+                  reps = 1000) # number of draws for quantile estimation, 1000 reps is the default
+summary(logqap)
+```
+
+```{r 16, include=TRUE}
+group <- bonobo_ggr_net %v% "group" # first create a vector giving the group of each node
+group_homophily <- outer(group, group, FUN = "==") # shows us whether each combination of terms in vector group is the same (TRUE) or different (FALSE)
+group_homophily 
+```
+
+```{r 17, include=TRUE}
+set.seed(123)
+logqap2 <- netlogit(bonobo_ggr_net,
+                  list(rank_receiving, rank_sending, group_homophily),
+                  reps = 1000)
+summary(logqap2)
+```
+
+```{r 18, include=TRUE}
+spmonkey_dat <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/bioanth-stats/module-F23-Group1/spidermonkey_beh_edgelist.csv")
+spmonkey_el <- read.csv(spmonkey_dat)
+head(spmonkey_el)
+```
+
+```{r 19, include=TRUE}
+unique(spmonkey_el$Beh) #subsetting the column for proximity types
+```
+
+```{r 20, include=TRUE}
+mating_spmonkey <- spmonkey_el[spmonkey_el$Beh == "mating",] #making a separate data frame for mating
+mating_spmonkey <- mating_spmonkey[,-c(2,4)] #removing unnecessary column data, we'll add back this "Mins" data as edge attributes later 
+sp_mating_net <- as.network(mating_spmonkey, matrix.type = "edgelist", directed = TRUE)
+plot(sp_mating_net, label = "vertex.names", main="Spider Monkey Mating Network")
+```
+
+```{r 21, include=TRUE}
+sp_attr <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/bioanth-stats/module-F23-Group1/spidermonkey_attributes.csv")
+sp_attr <- read.csv(sp_attr)
+head(sp_attr)
+```
+
+```{r 22, include=TRUE}
+sp_attr$age[sp_attr$age == "infant"] <- 1 #assigning a numeric value to each life history stage
+sp_attr$age[sp_attr$age == "juvenile"] <- 2
+sp_attr$age[sp_attr$age == "adult"] <- 3
+sp_attr$age <- as.numeric(sp_attr$age)
+class(sp_attr$age) #confirming the age attribute is coming up as a numeric class
+```
+
